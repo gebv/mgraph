@@ -1,0 +1,12 @@
+# tools
+required = [
+  "github.com/gogo/protobuf/protoc-gen-gogofast",
+  "github.com/mwitkow/go-proto-validators/protoc-gen-govalidators"
+  # "github.com/golangci/golangci-lint/cmd/golangci-lint"
+]
+
+[prune]
+  # non-go = true
+  go-tests = true
+  unused-packages = true
+
