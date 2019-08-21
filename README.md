@@ -16,6 +16,7 @@ Notes
   - [ ] add integration tests
   - [ ] notifications - move_node, remove_node, add_node
 - [ ] docs, translate all into en
+- [ ] add prometheus metrics for db and application
 - [ ] wrap in docker
 - [ ] store inmemory (?), materialized paths or?
 - [x] store postgres, materialized paths
