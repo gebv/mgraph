@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_MoveCases(t *testing.T) {
+func Test01_01MoveCases(t *testing.T) {
 	t.Run("Case1", func(t *testing.T) {
 		m := newTestManipulator(t)
 		/*
@@ -229,7 +229,64 @@ func Test_MoveCases(t *testing.T) {
 		}
 		m.AssertGraphNodes(want)
 	})
+}
 
-	// TODO: moving in the same branch
+func Test01_02RemoveCases(t *testing.T) {
+	t.Run("Case1", func(t *testing.T) {
+		m := newTestManipulator(t)
+		/*
+			1
+				2
+					3
+						4
+							5
+		*/
 
+		m.AddNodeToROOT("1")
+
+		m.AddNode("2", "1")
+		m.AddNode("3", "2")
+		m.AddNode("4", "3")
+		m.AddNode("5", "4")
+
+		want := []nodeWithAlias{
+			{"1", "root"},
+			{"2", "root.1"},
+			{"3", "root.1.2"},
+			{"4", "root.1.2.3"},
+			{"5", "root.1.2.3.4"},
+		}
+		m.AssertGraphNodes(want)
+
+		err := m.RemoveNode("3")
+		require.NoError(t, err, "remove 3")
+
+		/*
+			1
+				2
+		*/
+
+		want = []nodeWithAlias{
+			{"1", "root"},
+			{"2", "root.1"},
+		}
+		m.AssertGraphNodes(want)
+
+		err = m.RemoveNode("2")
+		require.NoError(t, err, "remove 2")
+
+		/*
+			1
+		*/
+
+		want = []nodeWithAlias{
+			{"1", "root"},
+		}
+		m.AssertGraphNodes(want)
+	})
+}
+
+func Test01_03ExceptionalSituations(t *testing.T) {
+	// TODO: дообавить в не существующий узел
+	// TODO: переместить в не существующий узел
 }
