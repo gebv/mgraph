@@ -81,14 +81,14 @@ func (s *MGraphPostgres) Add(ctx context.Context, parentID int64) (nodeID int64,
 func (s *MGraphPostgres) Move(ctx context.Context, nodeID, newParentID int64) error {
 	_, err := s.db.Exec(`SELECT mgraph.move_node($1, $2)`, nodeID, newParentID)
 	if err != nil {
-		return errors.Wrap(err, "failed move node")
+		return err
 	}
 	return nil
 }
 func (s *MGraphPostgres) Remove(ctx context.Context, nodeID int64) error {
 	_, err := s.db.Exec(`SELECT mgraph.remove_node($1)`, nodeID)
 	if err != nil {
-		return errors.Wrap(err, "failed move node")
+		return err
 	}
 	return nil
 }

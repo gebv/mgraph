@@ -1,6 +1,7 @@
 # mgraph
 
-Graph manager
+Graph manager - перемещения ноды (с потомками) в графе, удаление ноды (с потомками) в графе.
+Подробней [смотри тесты](tests/01_postgres_test.go)
 
 Notes
 * used by md5 (quick solution) for hashing customer ids

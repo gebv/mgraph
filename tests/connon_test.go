@@ -3,11 +3,14 @@ package tests
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/lib/pq"
 
 	"github.com/gebv/mgraph"
 	"github.com/stretchr/testify/assert"
@@ -18,6 +21,8 @@ var (
 	DB  *sql.DB
 	Ctx context.Context
 	MGP *mgraph.MGraphPostgres
+
+	ErrNotAllowedMoveInOwnSubthred = errors.New("not allowed to move in own subthread")
 )
 
 func newTestManipulator(t *testing.T) *testManipulator {
@@ -67,7 +72,16 @@ func (g *testManipulator) MoveNode(name, newParentName string) error {
 	nodeID := g.names[name]
 	require.NotEmpty(g.t, nodeID, "failed find node ID by name")
 	g.t.Logf("MOVE(%q, %q), MOVE(%d, %d)", name, newParentName, nodeID, parentID)
-	return g.s.Move(context.Background(), nodeID, parentID)
+	if err := g.s.Move(context.Background(), nodeID, parentID); err != nil {
+		if err, ok := err.(*pq.Error); ok {
+			if strings.HasPrefix(err.Where, "PL/pgSQL function mgraph.move_node(bigint,bigint)") &&
+				strings.HasPrefix(err.Message, "Not allowed to move in own subthread") {
+				return ErrNotAllowedMoveInOwnSubthred
+			}
+		}
+		return err
+	}
+	return nil
 }
 
 func (g *testManipulator) RemoveNode(name string) error {

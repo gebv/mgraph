@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Simple1(t *testing.T) {
+func Test_MoveCases(t *testing.T) {
 	t.Run("Case1", func(t *testing.T) {
 		m := newTestManipulator(t)
 		/*
@@ -112,6 +112,120 @@ func Test_Simple1(t *testing.T) {
 			{"a1b1", "root.a1.a2"},
 			{"a1b1c1", "root.a1.a2.a1b1"},
 			{"a1b1c1d1", "root.a1.a2.a1b1.a1b1c1"},
+		}
+		m.AssertGraphNodes(want)
+	})
+
+	t.Run("Case3", func(t *testing.T) {
+		m := newTestManipulator(t)
+		/*
+			1
+				2
+					3
+						4
+							5
+		*/
+
+		m.AddNodeToROOT("1")
+
+		m.AddNode("2", "1")
+		m.AddNode("3", "2")
+		m.AddNode("4", "3")
+		m.AddNode("5", "4")
+
+		want := []nodeWithAlias{
+			{"1", "root"},
+			{"2", "root.1"},
+			{"3", "root.1.2"},
+			{"4", "root.1.2.3"},
+			{"5", "root.1.2.3.4"},
+		}
+		m.AssertGraphNodes(want)
+
+		err := m.MoveNode("3", "1")
+		require.NoError(t, err, "move 3 to 1")
+
+		/*
+			1
+				2
+				3
+					4
+						5
+		*/
+
+		want = []nodeWithAlias{
+			{"1", "root"},
+			{"2", "root.1"},
+			{"3", "root.1"},
+			{"4", "root.1.3"},
+			{"5", "root.1.3.4"},
+		}
+		m.AssertGraphNodes(want)
+
+		err = m.MoveNode("2", "5")
+		require.NoError(t, err, "move a1b1 to a2")
+
+		/*
+			1
+				3
+					4
+						5
+							2
+		*/
+
+		want = []nodeWithAlias{
+			{"1", "root"},
+			{"3", "root.1"},
+			{"4", "root.1.3"},
+			{"5", "root.1.3.4"},
+			{"2", "root.1.3.4.5"},
+		}
+		m.AssertGraphNodes(want)
+	})
+
+	t.Run("Case4", func(t *testing.T) {
+		m := newTestManipulator(t)
+		/*
+			1
+				2
+					3
+						4
+							5
+		*/
+
+		m.AddNodeToROOT("1")
+
+		m.AddNode("2", "1")
+		m.AddNode("3", "2")
+		m.AddNode("4", "3")
+		m.AddNode("5", "4")
+
+		want := []nodeWithAlias{
+			{"1", "root"},
+			{"2", "root.1"},
+			{"3", "root.1.2"},
+			{"4", "root.1.2.3"},
+			{"5", "root.1.2.3.4"},
+		}
+		m.AssertGraphNodes(want)
+
+		err := m.MoveNode("2", "5")
+		require.Error(t, err, ErrNotAllowedMoveInOwnSubthred, "move 2 to 5")
+
+		/*
+			1
+				2
+					3
+						4
+							5
+		*/
+
+		want = []nodeWithAlias{
+			{"1", "root"},
+			{"2", "root.1"},
+			{"3", "root.1.2"},
+			{"4", "root.1.2.3"},
+			{"5", "root.1.2.3.4"},
 		}
 		m.AssertGraphNodes(want)
 	})
