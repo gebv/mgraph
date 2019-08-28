@@ -3,6 +3,9 @@ package tests
 import (
 	"testing"
 
+	"github.com/gebv/mgraph"
+
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -210,7 +213,7 @@ func Test01_01MoveCases(t *testing.T) {
 		m.AssertGraphNodes(want)
 
 		err := m.MoveNode("2", "5")
-		require.Error(t, err, ErrNotAllowedMoveInOwnSubthred, "move 2 to 5")
+		require.Error(t, err, mgraph.ErrNotAllowedMoveInOwnSubthred, "move 2 to 5")
 
 		/*
 			1
@@ -287,6 +290,58 @@ func Test01_02RemoveCases(t *testing.T) {
 }
 
 func Test01_03ExceptionalSituations(t *testing.T) {
-	// TODO: дообавить в не существующий узел
-	// TODO: переместить в не существующий узел
+	t.Run("addToNonExistingParent", func(t *testing.T) {
+		m := newTestManipulator(t)
+
+		m.AddNodeToROOT("1")
+		_, err := m.s.Add(Ctx, 123123123)
+		assert.Error(t, err, mgraph.ErrNodeNotFound)
+
+		err = m.s.Remove(Ctx, 123123123)
+		assert.Error(t, err, mgraph.ErrNodeNotFound)
+	})
+
+	t.Run("moveAndRemoveToNotExistsParent", func(t *testing.T) {
+		m := newTestManipulator(t)
+
+		m.AddNodeToROOT("1")
+
+		m.AddNode("2", "1")
+		m.AddNode("3", "2")
+		m.AddNode("4", "3")
+		m.AddNode("5", "4")
+
+		want := []nodeWithAlias{
+			{"1", "root"},
+			{"2", "root.1"},
+			{"3", "root.1.2"},
+			{"4", "root.1.2.3"},
+			{"5", "root.1.2.3.4"},
+		}
+		m.AssertGraphNodes(want)
+
+		err := m.s.Move(Ctx, m.names["2"], 123123)
+		require.Error(t, err, mgraph.ErrNodeNotFound)
+
+		want = []nodeWithAlias{
+			{"1", "root"},
+			{"2", "root.1"},
+			{"3", "root.1.2"},
+			{"4", "root.1.2.3"},
+			{"5", "root.1.2.3.4"},
+		}
+		m.AssertGraphNodes(want)
+
+		err = m.s.Remove(Ctx, 123123)
+		require.Error(t, err, mgraph.ErrNodeNotFound)
+
+		want = []nodeWithAlias{
+			{"1", "root"},
+			{"2", "root.1"},
+			{"3", "root.1.2"},
+			{"4", "root.1.2.3"},
+			{"5", "root.1.2.3.4"},
+		}
+		m.AssertGraphNodes(want)
+	})
 }

@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
 )
@@ -56,6 +57,9 @@ func (s *MGraphPostgres) Add(ctx context.Context, parentID int64) (nodeID int64,
 	var parentPath *string
 	err = tx.QueryRow(`SELECT path FROM mgraph.graph_nodes WHERE node_id = $1`, parentID).Scan(&parentPath)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, ErrNodeNotFound
+		}
 		return 0, errors.Wrap(err, "failed find parent node")
 	}
 
@@ -81,6 +85,17 @@ func (s *MGraphPostgres) Add(ctx context.Context, parentID int64) (nodeID int64,
 func (s *MGraphPostgres) Move(ctx context.Context, nodeID, newParentID int64) error {
 	_, err := s.db.Exec(`SELECT mgraph.move_node($1, $2)`, nodeID, newParentID)
 	if err != nil {
+		if err, ok := err.(*pq.Error); ok {
+			if strings.HasPrefix(err.Where, "PL/pgSQL function mgraph.move_node(bigint,bigint)") &&
+				strings.HasPrefix(err.Message, "Not allowed to move in own subthread") {
+				return ErrNotAllowedMoveInOwnSubthred
+			}
+
+			if strings.HasPrefix(err.Where, "PL/pgSQL function mgraph.move_node(bigint,bigint)") &&
+				strings.HasPrefix(err.Message, "Not found parent node") {
+				return ErrNodeNotFound
+			}
+		}
 		return err
 	}
 	return nil
@@ -88,6 +103,17 @@ func (s *MGraphPostgres) Move(ctx context.Context, nodeID, newParentID int64) er
 func (s *MGraphPostgres) Remove(ctx context.Context, nodeID int64) error {
 	_, err := s.db.Exec(`SELECT mgraph.remove_node($1)`, nodeID)
 	if err != nil {
+		if err, ok := err.(*pq.Error); ok {
+			if strings.HasPrefix(err.Where, "PL/pgSQL function mgraph.remove_node(bigint)") &&
+				strings.HasPrefix(err.Message, "Not allowed to move in own subthread") {
+				return ErrNotAllowedMoveInOwnSubthred
+			}
+
+			if strings.HasPrefix(err.Where, "PL/pgSQL function mgraph.remove_node(bigint)") &&
+				strings.HasPrefix(err.Message, "Not found parent node") {
+				return ErrNodeNotFound
+			}
+		}
 		return err
 	}
 	return nil
@@ -95,12 +121,20 @@ func (s *MGraphPostgres) Remove(ctx context.Context, nodeID int64) error {
 func (s *MGraphPostgres) GraphNodes(ctx context.Context, graphID int64) []Node {
 	var rootID int64
 	if err := s.db.QueryRow(`SELECT root_node_id FROM mgraph.graph WHERE graph_id = $1`, graphID).Scan(&rootID); err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("not fodun graph by ID=%d\n", graphID)
+			return nil
+		}
 		log.Println("failed find graph by ID", err)
 		return nil
 	}
 	query := `SELECT node_id, parent_id, path FROM mgraph.graph_nodes WHERE $1::ltree @> path;`
 	rows, err := s.db.Query(query, fmt.Sprint(rootID))
 	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("graph=%d is empty\n", graphID)
+			return nil
+		}
 		log.Println("failed find nodes by graph", err)
 		return nil
 	}

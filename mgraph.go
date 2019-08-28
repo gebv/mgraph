@@ -5,8 +5,9 @@ import (
 )
 
 var (
-	ErrGraphExists  = errors.New("graph exists")
-	ErrNodeNotFound = errors.New("node not found")
+	ErrGraphExists                 = errors.New("mgraph: graph exists")
+	ErrNodeNotFound                = errors.New("mgraph: node not found")
+	ErrNotAllowedMoveInOwnSubthred = errors.New("mgraph: not allowed to move in own subthread")
 )
 
 type Graph struct {
