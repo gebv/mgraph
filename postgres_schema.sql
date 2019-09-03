@@ -66,7 +66,8 @@ CREATE OR REPLACE FUNCTION mgraph.move_node(
         END IF;
 
         IF _from_path IS NULL THEN
-            RAISE EXCEPTION 'Not allowed move root node of graph (path=% move to path=%)', _from_path, _to_path;
+            RAISE EXCEPTION 'Not allowed move root node of graph (from_path=%)', _from_path;
+            -- _from_path = ''::ltree;
         END IF;
 
         SELECT gn.path INTO _to_path FROM mgraph.graph_nodes gn WHERE gn.node_id = new_parent_id;
@@ -75,7 +76,7 @@ CREATE OR REPLACE FUNCTION mgraph.move_node(
         END IF;
 
         IF _to_path IS NOT NULL AND _from_path != _to_path AND _from_path::ltree || currnet_node_id::text::ltree @> _to_path::ltree THEN
-            RAISE EXCEPTION 'Not allowed to move in own subthread (path=% move to path=%)', _from_path::ltree || currnet_node_id::text::ltree, _to_path;
+            RAISE EXCEPTION 'Not allowed to move in own subthread (from_path=% move to_path=%)', _from_path::ltree || currnet_block_id::text::ltree, _to_path;
         END IF;
 
         -- NOTE: allowed move to root node

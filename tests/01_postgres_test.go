@@ -344,4 +344,39 @@ func Test01_03ExceptionalSituations(t *testing.T) {
 		}
 		m.AssertGraphNodes(want)
 	})
+
+	t.Run("moveRootPath", func(t *testing.T) {
+		m := newTestManipulator(t)
+
+		m.AddNodeToROOT("1")
+		m.AddNodeToROOT("11")
+
+		m.AddNode("2", "1")
+		m.AddNode("3", "2")
+		m.AddNode("4", "3")
+		m.AddNode("5", "4")
+
+		want := []nodeWithAlias{
+			{"1", "root"},
+			{"11", "root"},
+			{"2", "root.1"},
+			{"3", "root.1.2"},
+			{"4", "root.1.2.3"},
+			{"5", "root.1.2.3.4"},
+		}
+		m.AssertGraphNodes(want)
+
+		err := m.MoveNode("1", "11")
+		require.NoError(t, err)
+
+		want = []nodeWithAlias{
+			{"11", "root"},
+			{"1", "root.11"},
+			{"2", "root.11.1"},
+			{"3", "root.11.1.2"},
+			{"4", "root.11.1.2.3"},
+			{"5", "root.11.1.2.3.4"},
+		}
+		m.AssertGraphNodes(want)
+	})
 }
